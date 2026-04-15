@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TrueLense — AI Content Detection</title>
+  <meta name="description" content="Detect AI-generated images and videos instantly. Built for a world where seeing is no longer believing."/>
+  <meta property="og:title" content="TrueLense — AI Content Detection"/>
+  <meta property="og:description" content="Detect AI-generated images and videos instantly."/>
+  <meta property="og:image" content="assets/truelense_banner_1024x500.png"/>
+  <meta property="og:url" content="https://truelense.app"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="icon" href="assets/truelense_icon_final_512x512.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#060810;--surface:#0D0F17;--card:#131620;
+      --accent:#00E8B8;--accent-dim:#0A1F1A;--accent-glow:rgba(0,232,184,0.15);
+      --warn:#F0A030;--danger:#F04060;--pro:#9580FF;
+      --text:#E4E7ED;--dim:#7A7F94;--muted:#484C5E;--border:#1A1E2C;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;overflow-x:hidden;min-height:100vh;}
+    #particle-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+    #scanline{position:fixed;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,rgba(0,232,184,0) 20%,rgba(0,232,184,0.55) 50%,rgba(0,232,184,0) 80%,transparent 100%);z-index:1;pointer-events:none;box-shadow:0 0 12px rgba(0,232,184,0.4);animation:scanline 4s linear infinite;}
+    @keyframes scanline{0%{top:-2px;opacity:0;}5%{opacity:1;}95%{opacity:0.6;}100%{top:100vh;opacity:0;}}
+    .glow-bloom{position:fixed;bottom:-80px;left:50%;transform:translateX(-50%);width:600px;height:200px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,232,184,0.07) 0%,transparent 70%);pointer-events:none;z-index:0;}
+    .page{position:relative;z-index:2;}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:20px 40px;position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
+    .logo{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;text-decoration:none;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;}
+    .logo-true{color:var(--text);}.logo-lense{color:var(--accent);}
+    .logo-beta{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(0,232,184,0.3);border-radius:5px;padding:2px 7px;align-self:center;margin-top:2px;}
+    .nav-links{display:flex;gap:28px;list-style:none;}
+    .nav-links a{color:var(--dim);text-decoration:none;font-size:14px;font-weight:500;transition:color 0.2s;}
+    .nav-links a:hover{color:var(--accent);}
+    .hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:80px 24px 80px;}
+    .hero-icon{width:100px;height:100px;border-radius:26px;overflow:hidden;margin-bottom:28px;box-shadow:0 0 40px rgba(0,232,184,0.2),0 0 0 1px rgba(0,232,184,0.1);animation:fadeUp 0.5s ease both;}
+    .hero-icon img{width:100%;height:100%;display:block;}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(0,232,184,0.22);border-radius:20px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1.2px;margin-bottom:32px;animation:fadeUp 0.5s ease 0.05s both;}
+    .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s ease infinite;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+    h1{font-size:clamp(42px,8vw,88px);font-weight:700;line-height:1.0;letter-spacing:-2px;margin-bottom:24px;animation:fadeUp 0.5s ease 0.1s both;}
+    h1 em{color:var(--accent);font-style:normal;text-shadow:0 0 40px rgba(0,232,184,0.4);}
+    .hero-tagline{font-size:clamp(15px,2.2vw,19px);color:var(--dim);max-width:480px;margin-bottom:52px;font-weight:400;animation:fadeUp 0.5s ease 0.2s both;}
+    .cta-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:420px;animation:fadeUp 0.5s ease 0.3s both;}
+    .btn-play{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:17px 28px;background:linear-gradient(135deg,var(--accent),#00C49A);border:none;border-radius:14px;color:#030a08;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;text-decoration:none;cursor:pointer;box-shadow:0 6px 28px rgba(0,232,184,0.32);transition:transform 0.15s,box-shadow 0.15s;}
+    .btn-play:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,232,184,0.45);}
+    .btn-play:active{transform:scale(0.97);}
+    .play-icon{width:20px;height:20px;flex-shrink:0;}
+    .or-divider{display:flex;align-items:center;gap:12px;width:100%;}
+    .or-line{flex:1;height:1px;background:var(--border);}
+    .or-text{font-size:11px;color:var(--muted);letter-spacing:0.5px;}
+    .email-form{display:flex;gap:8px;width:100%;}
+    .email-input{flex:1;padding:14px 16px;background:rgba(13,15,23,0.9);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+    .email-input::placeholder{color:var(--muted);}
+    .email-input:focus{border-color:rgba(0,232,184,0.35);box-shadow:0 0 0 3px rgba(0,232,184,0.07);}
+    .btn-notify{padding:14px 20px;background:transparent;border:1px solid var(--accent);border-radius:12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background 0.2s,color 0.2s,box-shadow 0.2s;}
+    .btn-notify:hover{background:var(--accent);color:var(--bg);box-shadow:0 4px 20px rgba(0,232,184,0.3);}
+    .form-note{font-size:11px;color:var(--muted);text-align:center;}
+    .success-msg{display:none;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(0,232,184,0.25);border-radius:10px;padding:12px 20px;text-align:center;width:100%;}
+    .banner-section{padding:0 24px 100px;display:flex;justify-content:center;animation:fadeUp 0.6s ease 0.4s both;}
+    .banner-frame{position:relative;max-width:900px;width:100%;border-radius:22px;overflow:hidden;border:1px solid var(--border);box-shadow:0 0 0 1px rgba(0,232,184,0.07),0 32px 80px rgba(0,0,0,0.6),0 0 80px rgba(0,232,184,0.05);}
+    .banner-frame img{width:100%;height:auto;display:block;}
+    .banner-scan{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,232,184,0.03) 50%,transparent 60%);animation:bannerScan 3s ease-in-out infinite;pointer-events:none;}
+    @keyframes bannerScan{0%,100%{transform:translateY(-100%);}50%{transform:translateY(100%);}}
+    .section-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+    .section-bar::before{content:'';width:3px;height:16px;background:var(--accent);border-radius:2px;}
+    .section-bar span{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1.4px;}
+    .features{padding:80px 40px 100px;max-width:1100px;margin:0 auto;}
+    .features h2{font-size:clamp(28px,4vw,46px);font-weight:700;letter-spacing:-1px;line-height:1.1;margin-bottom:56px;max-width:520px;}
+    .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;}
+    .feature-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px 24px;position:relative;overflow:hidden;transition:border-color 0.25s,transform 0.25s;}
+    .feature-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(0,232,184,0.04) 0%,transparent 70%);opacity:0;transition:opacity 0.3s;}
+    .feature-card:hover{border-color:rgba(0,232,184,0.18);transform:translateY(-3px);}
+    .feature-card:hover::before{opacity:1;}
+    .feat-icon{width:40px;height:40px;background:var(--accent-dim);border:1px solid rgba(0,232,184,0.15);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:16px;}
+    .feature-card h3{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;}
+    .feature-card p{font-size:13px;color:var(--dim);line-height:1.65;}
+    .signal-section{padding:80px 40px;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+    .signal-inner{max-width:900px;margin:0 auto;}
+    .signal-inner h2{font-size:clamp(24px,3.5vw,38px);font-weight:700;letter-spacing:-0.8px;margin-bottom:40px;}
+    .signal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;}
+    .signal-row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;}
+    .signal-status{font-size:9px;font-weight:800;letter-spacing:0.8px;padding:3px 8px;border-radius:5px;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+    .status-pass{background:rgba(0,232,184,0.12);color:var(--accent);border:1px solid rgba(0,232,184,0.2);}
+    .status-flag{background:rgba(240,64,96,0.12);color:var(--danger);border:1px solid rgba(240,64,96,0.2);}
+    .status-warn{background:rgba(240,160,48,0.12);color:var(--warn);border:1px solid rgba(240,160,48,0.2);}
+    .signal-label{font-size:13px;color:var(--text);font-weight:500;}
+    .signal-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+    .verdict-demo{max-width:900px;margin:40px auto 0;background:var(--card);border:1.5px solid rgba(240,64,96,0.22);border-radius:20px;padding:28px 24px;text-align:center;box-shadow:0 0 40px rgba(240,64,96,0.06);}
+    .verdict-score{font-size:72px;font-weight:700;color:var(--danger);line-height:1;font-family:'JetBrains Mono',monospace;text-shadow:0 0 40px rgba(240,64,96,0.35);}
+    .verdict-label{display:inline-block;margin-top:12px;background:rgba(240,64,96,0.12);border:1px solid rgba(240,64,96,0.3);border-radius:20px;padding:6px 18px;font-size:11px;font-weight:800;color:var(--danger);letter-spacing:2px;}
+    .verdict-summary{margin-top:14px;font-size:13px;color:var(--dim);max-width:440px;margin-left:auto;margin-right:auto;line-height:1.6;}
+    .ranks-section{padding:80px 40px;max-width:1100px;margin:0 auto;}
+    .ranks-section h2{font-size:clamp(24px,3.5vw,40px);font-weight:700;letter-spacing:-0.8px;margin-bottom:12px;}
+    .ranks-sub{color:var(--dim);font-size:14px;max-width:480px;margin-bottom:44px;line-height:1.6;}
+    .rank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
+    .rank-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px;transition:border-color 0.2s,transform 0.2s;}
+    .rank-card:hover{transform:translateY(-2px);}
+    .rank-card.founding{border-color:rgba(240,160,48,0.3);background:linear-gradient(135deg,rgba(240,160,48,0.05),var(--card));}
+    .rank-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .rank-name{font-size:14px;font-weight:700;color:var(--text);}
+    .rank-pts{font-size:11px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+    .pro-section{padding:80px 40px;background:var(--surface);border-top:1px solid var(--border);}
+    .pro-inner{max-width:900px;margin:0 auto;}
+    .pro-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:48px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;position:relative;overflow:hidden;}
+    .pro-card::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(149,128,255,0.08) 0%,transparent 70%);pointer-events:none;}
+    .pro-card h2{font-size:clamp(24px,3vw,36px);font-weight:700;letter-spacing:-0.5px;margin-bottom:12px;}
+    .pro-card>div>p{color:var(--dim);font-size:14px;line-height:1.7;margin-bottom:28px;}
+    .pro-features{display:flex;flex-direction:column;gap:10px;}
+    .pro-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);}
+    .pro-check{width:18px;height:18px;border-radius:50%;background:rgba(149,128,255,0.15);border:1px solid rgba(149,128,255,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:var(--pro);}
+    .pro-prices{display:flex;flex-direction:column;gap:12px;}
+    .price-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px;}
+    .price-card.featured{border-color:rgba(149,128,255,0.35);background:linear-gradient(135deg,rgba(149,128,255,0.06),var(--surface));}
+    .price-row{display:flex;align-items:center;justify-content:space-between;}
+    .price-name{font-size:14px;font-weight:700;color:var(--text);}
+    .price-amount{font-size:18px;font-weight:700;color:var(--pro);font-family:'JetBrains Mono',monospace;}
+    .price-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+    .save-badge{font-size:9px;font-weight:800;letter-spacing:0.8px;background:rgba(0,232,184,0.12);border:1px solid rgba(0,232,184,0.25);color:var(--accent);border-radius:5px;padding:2px 8px;margin-left:8px;}
+    .btn-trial{display:block;width:100%;margin-top:16px;padding:15px;text-align:center;background:linear-gradient(135deg,var(--pro),#818CF8);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 6px 24px rgba(149,128,255,0.3);transition:transform 0.15s,box-shadow 0.15s;}
+    .btn-trial:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(149,128,255,0.4);}
+    .trial-note{font-size:11px;color:var(--muted);text-align:center;margin-top:10px;}
+    footer{padding:40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+    .footer-links{display:flex;gap:24px;list-style:none;}
+    .footer-links a{color:var(--muted);text-decoration:none;font-size:13px;transition:color 0.2s;}
+    .footer-links a:hover{color:var(--accent);}
+    .footer-copy{font-size:12px;color:var(--muted);width:100%;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+    .reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    .screenshots-section{padding:80px 0;background:var(--surface);border-top:1px solid var(--border);}
+    .screenshots-inner{max-width:1100px;margin:0 auto;padding:0 40px;}
+    .screenshots-scroll{display:flex;gap:16px;overflow-x:auto;padding:20px 40px 28px;scrollbar-width:none;-ms-overflow-style:none;cursor:grab;}
+    .screenshots-scroll::-webkit-scrollbar{display:none;}
+    .screenshots-scroll:active{cursor:grabbing;}
+    .screenshot-phone{flex-shrink:0;width:200px;border-radius:24px;overflow:hidden;border:1px solid var(--border);box-shadow:0 16px 48px rgba(0,0,0,0.5);transition:transform 0.3s,box-shadow 0.3s;}
+    .screenshot-phone:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 24px 60px rgba(0,0,0,0.7),0 0 0 1px rgba(0,232,184,0.1);}
+    .screenshot-phone img{width:100%;height:auto;display:block;}
+    .screenshot-label{font-size:11px;font-weight:600;color:var(--muted);text-align:center;padding:10px 0 4px;letter-spacing:0.5px;}
+    @media(max-width:768px){
+      nav{padding:16px 20px;}.nav-links{display:none;}
+      .hero{padding:60px 20px 60px;}
+      .features,.ranks-section{padding:60px 20px;}
+      .signal-section,.pro-section{padding:60px 20px;}
+      .screenshots-inner{padding:0 20px;}
+      .screenshots-scroll{padding:20px 20px 28px;}
+      .pro-card{grid-template-columns:1fr;padding:28px 20px;}
+      .pro-card::before{display:none;}
+      footer{padding:32px 20px;flex-direction:column;align-items:flex-start;}
+      .email-form{flex-direction:column;}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particle-canvas"></canvas>
+  <div id="scanline"></div>
+  <div class="glow-bloom"></div>
+  <div class="page">
+    <nav>
+      <a href="/" class="logo">
+        <span class="logo-true">True</span><span class="logo-lense">Lense</span>
+        <span class="logo-beta">BETA</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#screenshots">Screenshots</a></li>
+        <li><a href="#detection">Detection</a></li>
+        <li><a href="#ranks">Ranks</a></li>
+        <li><a href="#pro">Pro</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+      </ul>
+    </nav>
+    <section class="hero">
+      <div class="hero-icon"><img src="assets/truelense_icon_final_512x512.png" alt="TrueLense"/></div>
+      <div class="hero-eyebrow"><div class="eyebrow-dot"></div>NOW AVAILABLE ON ANDROID</div>
+      <h1>See what's<br/><em>really</em> there.</h1>
+      <p class="hero-tagline">Built for a world where seeing is no longer believing. AI-powered synthetic media detection in your pocket.</p>
+      <div class="cta-wrap">
+        <a href="https://play.google.com/apps/internaltest/4701592419705379364" target="_blank" rel="noopener" class="btn-play">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76a2 2 0 002.09-.15L20.33 13.4a2 2 0 000-2.8L5.27.39A2 2 0 002 2.21v19.58a2 2 0 001.18 1.97z"/></svg>
+          Download on Google Play
+        </a>
+        <div class="or-divider"><div class="or-line"></div><span class="or-text">or get notified at launch</span><div class="or-line"></div></div>
+        <form class="email-form" id="emailForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+          <input type="email" name="email" class="email-input" placeholder="your@email.com" required/>
+          <button type="submit" class="btn-notify">Notify Me</button>
+        </form>
+        <span class="form-note">No spam. Launch updates and founding member access only.</span>
+        <div class="success-msg" id="successMsg">✓ You're on the list. Founding member access confirmed.</div>
+      </div>
+    </section>
+    <div class="banner-section reveal">
+      <div class="banner-frame">
+        <img src="assets/truelense_banner_1024x500.png" alt="TrueLense" width="1024" height="500"/>
+        <div class="banner-scan"></div>
+      </div>
+    </div>
+    <section class="screenshots-section" id="screenshots">
+      <div class="screenshots-inner">
+        <div class="section-bar reveal"><span>IN THE APP</span></div>
+        <h2 class="reveal" style="margin-bottom:8px;">Every screen. Built to last.</h2>
+        <p class="reveal" style="color:var(--dim);font-size:14px;margin-bottom:0;">Drag to explore all screens.</p>
+      </div>
+      <div class="screenshots-scroll" id="screenshotScroll">
+        <div class="screenshot-phone">
+          <img src="assets/screenshots/TL_login.jpg" alt="Login screen"/>
+          <div class="screenshot-label">LOGIN</div>
+        </div>
+        <div class="screenshot-phone">
+          <img src="assets/screenshots/TL_scan.jpg" alt="Scan screen"/>
+          <div class="screenshot-label">SCAN</div>
+        </div>
+        <div class="screenshot-phone">
+          <img src="assets/screenshots/TL_results.jpg" alt="Results screen"/>
+          <div class="screenshot-label">RESULTS</div>
+        </div>
+        <div class="screenshot-phone">
+          <img src="assets/screenshots/TL_history.jpg" alt="History screen"/>
+          <div class="screenshot-label">HISTORY</div>
+        </div>
+        <div class="screenshot-phone">
+          <img src="assets/screenshots/TL_community.jpg" alt="Community screen"/>
+          <div class="screenshot-label">COMMUNITY</div>
+        </div>
+        <div class="screenshot-phone">
+          <img src="assets/screenshots/TL_account.jpg" alt="Account screen"/>
+          <div class="screenshot-label">ACCOUNT</div>
+        </div>
+        <div class="screenshot-phone">
+          <img src="assets/screenshots/TL_pro.jpg" alt="Pro screen"/>
+          <div class="screenshot-label">PRO</div>
+        </div>
+      </div>
+    </section>
+    <section class="features" id="features">
+      <div class="section-bar reveal"><span>HOW IT WORKS</span></div>
+      <h2 class="reveal">Six detection layers.<br/>One clear verdict.</h2>
+      <div class="feature-grid">
+        <div class="feature-card reveal"><div class="feat-icon">🔬</div><h3>Noise analysis</h3><p>Every camera introduces a unique grain signature. AI generators produce patterns that fall outside natural camera output ranges.</p></div>
+        <div class="feature-card reveal"><div class="feat-icon">📐</div><h3>Edge structure</h3><p>Real images have naturally varied edge sharpness. AI tools produce edges that are too clean and too consistent to be real.</p></div>
+        <div class="feature-card reveal"><div class="feat-icon">🎨</div><h3>Color distribution</h3><p>The color entropy of AI-generated content falls outside the range of what real cameras capture in natural conditions.</p></div>
+        <div class="feature-card reveal"><div class="feat-icon">💡</div><h3>Lighting consistency</h3><p>Real scenes have physically consistent light sources. AI models produce subtle inconsistencies in shadow and highlight behavior.</p></div>
+        <div class="feature-card reveal"><div class="feat-icon">🎬</div><h3>Temporal motion</h3><p>For video, we analyze how motion evolves between frames. AI-generated video produces motion patterns real cameras cannot replicate.</p></div>
+        <div class="feature-card reveal"><div class="feat-icon">🗂</div><h3>Metadata integrity</h3><p>Real photos embed technical capture data. AI-generated images contain no camera metadata — a high-confidence signal on its own.</p></div>
+      </div>
+    </section>
+    <section class="signal-section" id="detection">
+      <div class="signal-inner">
+        <div class="section-bar reveal"><span>WHAT YOU SEE</span></div>
+        <h2 class="reveal">Plain English. No black-box verdicts.</h2>
+        <div class="signal-grid reveal">
+          <div class="signal-row"><span class="signal-status status-flag">FLAGGED</span><div><div class="signal-label">Unusual grain pattern</div><div class="signal-desc">Camera grain doesn't match any known sensor profile</div></div></div>
+          <div class="signal-row"><span class="signal-status status-flag">FLAGGED</span><div><div class="signal-label">No camera info found</div><div class="signal-desc">File contains no capture metadata</div></div></div>
+          <div class="signal-row"><span class="signal-status status-warn">REVIEW</span><div><div class="signal-label">Lighting looks slightly off</div><div class="signal-desc">Shadow and highlight inconsistencies detected</div></div></div>
+          <div class="signal-row"><span class="signal-status status-flag">FLAGGED</span><div><div class="signal-label">Outlines suspiciously smooth</div><div class="signal-desc">Edge uniformity outside natural camera range</div></div></div>
+          <div class="signal-row"><span class="signal-status status-pass">PASS</span><div><div class="signal-label">Colors look natural</div><div class="signal-desc">Color distribution within expected range</div></div></div>
+          <div class="signal-row"><span class="signal-status status-flag">FLAGGED</span><div><div class="signal-label">Multiple signals agree</div><div class="signal-desc">Edge and lighting corroborate AI origin</div></div></div>
+        </div>
+        <div class="verdict-demo reveal">
+          <div class="verdict-score">87%</div>
+          <div class="verdict-label">LIKELY AI-GENERATED</div>
+          <p class="verdict-summary">4 of 5 detection signals indicate AI generation. Noise patterns are atypical, no camera metadata found, and edge structure is unusually uniform.</p>
+        </div>
+      </div>
+    </section>
+    <section class="ranks-section" id="ranks">
+      <div class="section-bar reveal"><span>RANK PROGRESSION</span></div>
+      <h2 class="reveal">Earn your place.</h2>
+      <p class="ranks-sub reveal">Every scan and community vote earns points toward your rank. Beta users earn the exclusive Founding Member badge — permanently.</p>
+      <div class="rank-grid">
+        <div class="rank-card founding reveal"><div class="rank-dot" style="background:#F0A030;box-shadow:0 0 8px rgba(240,160,48,0.5);"></div><div><div class="rank-name">Founding Member</div><div class="rank-pts">BETA EXCLUSIVE · PERMANENT</div></div></div>
+        <div class="rank-card reveal"><div class="rank-dot" style="background:#7A7F94;"></div><div><div class="rank-name">Observer</div><div class="rank-pts">STARTING RANK</div></div></div>
+        <div class="rank-card reveal"><div class="rank-dot" style="background:#00E8B8;box-shadow:0 0 8px rgba(0,232,184,0.4);"></div><div><div class="rank-name">Signal Tracer</div><div class="rank-pts">TIER I · 500 PTS</div></div></div>
+        <div class="rank-card reveal"><div class="rank-dot" style="background:#F0A030;box-shadow:0 0 8px rgba(240,160,48,0.4);"></div><div><div class="rank-name">Anomaly Hunter</div><div class="rank-pts">TIER II · 2,000 PTS</div></div></div>
+        <div class="rank-card reveal"><div class="rank-dot" style="background:#9580FF;box-shadow:0 0 8px rgba(149,128,255,0.4);"></div><div><div class="rank-name">Forensic Analyst</div><div class="rank-pts">TIER III · 5,000 PTS</div></div></div>
+        <div class="rank-card reveal"><div class="rank-dot" style="background:#F04060;box-shadow:0 0 8px rgba(240,64,96,0.4);"></div><div><div class="rank-name">Truth Sentinel</div><div class="rank-pts">TIER V · 30,000 PTS</div></div></div>
+        <div class="rank-card reveal" style="border-color:rgba(0,232,184,0.15);background:linear-gradient(135deg,rgba(0,232,184,0.04),var(--card));"><div class="rank-dot" style="background:conic-gradient(#00E8B8,#9580FF,#F04060,#F0A030,#00E8B8);box-shadow:0 0 10px rgba(149,128,255,0.5);"></div><div><div class="rank-name" style="color:var(--accent);">Truth Architect</div><div class="rank-pts">TIER VII · 100,000 PTS</div></div></div>
+      </div>
+    </section>
+    <section class="pro-section" id="pro">
+      <div class="pro-inner">
+        <div class="section-bar reveal"><span>TRUELENSE PRO</span></div>
+        <div class="pro-card reveal">
+          <div>
+            <h2>Unlock the<br/>full picture.</h2>
+            <p>Everything you need to detect synthetic media with confidence. No limits, no ads, no compromises.</p>
+            <div class="pro-features">
+              <div class="pro-feat"><div class="pro-check">✓</div>Unlimited daily scans</div>
+              <div class="pro-feat"><div class="pro-check">✓</div>No advertisements</div>
+              <div class="pro-feat"><div class="pro-check">✓</div>Full scan history</div>
+              <div class="pro-feat"><div class="pro-check">✓</div>URL scanning — TikTok, YouTube and more</div>
+              <div class="pro-feat"><div class="pro-check">✓</div>Priority support</div>
+            </div>
+          </div>
+          <div class="pro-prices">
+            <div class="price-card"><div class="price-row"><span class="price-name">Monthly</span><span class="price-amount">$2.99<span style="font-size:12px;color:var(--muted)">/mo</span></span></div><div class="price-sub">7-day free trial · Cancel anytime</div></div>
+            <div class="price-card featured"><div class="price-row"><span class="price-name">Annual <span class="save-badge">SAVE 30%</span></span><span class="price-amount">$24.99<span style="font-size:12px;color:var(--muted)">/yr</span></span></div><div class="price-sub">7-day free trial · Best value</div></div>
+            <a href="https://play.google.com/apps/internaltest/4701592419705379364" target="_blank" class="btn-trial">Start Free Trial</a>
+            <p class="trial-note">Cancel anytime. No questions asked.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer>
+      <a href="/" class="logo"><span class="logo-true">True</span><span class="logo-lense">Lense</span></a>
+      <ul class="footer-links">
+        <li><a href="privacy.html">Privacy Policy</a></li>
+        <li><a href="mailto:jwalls0743@gmail.com">Contact</a></li>
+      </ul>
+      <p class="footer-copy">© 2026 TrueLense · Built for a world where seeing is no longer believing.</p>
+    </footer>
+  </div>
+  <script>
+    const canvas=document.getElementById('particle-canvas');
+    const ctx=canvas.getContext('2d');
+    let W,H,particles,t=0;
+    function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+    function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+    function initParticles(){const rng=mulberry32(42);particles=Array.from({length:80},(_,i)=>{const tier=i%3;return{x:rng()*W,y:rng()*H,size:tier===0?1.2+rng():tier===1?2.0+rng()*1.5:2.8+rng()*2.0,speed:tier===0?0.006+rng()*0.008:tier===1?0.010+rng()*0.010:0.016+rng()*0.014,opacity:tier===0?0.20+rng()*0.15:tier===1?0.35+rng()*0.20:0.50+rng()*0.25,tier};})}
+    function draw(){ctx.clearRect(0,0,W,H);t+=0.0008;for(const p of particles){const dy=(p.y-t*p.speed*H*60)%H;const y=dy<0?dy+H:dy;ctx.beginPath();ctx.arc(p.x,y,p.size,0,Math.PI*2);ctx.fillStyle=`rgba(0,232,184,${p.opacity})`;ctx.shadowBlur=p.tier===2?6:p.tier===1?3:1;ctx.shadowColor='rgba(0,232,184,0.3)';ctx.fill();ctx.shadowBlur=0;}requestAnimationFrame(draw);}
+    window.addEventListener('resize',()=>{resize();initParticles();});
+    resize();initParticles();draw();
+    const io=new IntersectionObserver((entries)=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*60);io.unobserve(e.target);}});},{threshold:0.1});
+    document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+    const form=document.getElementById('emailForm');
+    const successMsg=document.getElementById('successMsg');
+    form.addEventListener('submit',async(e)=>{e.preventDefault();try{const res=await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'Accept':'application/json'}});if(res.ok){form.style.display='none';form.nextElementSibling.style.display='none';successMsg.style.display='block';}}catch{form.style.display='none';form.nextElementSibling.style.display='none';successMsg.style.display='block';}});
+    // Drag-to-scroll screenshots
+    const scroll=document.getElementById('screenshotScroll');
+    let isDown=false,startX,left;
+    scroll.addEventListener('mousedown',(e)=>{isDown=true;scroll.style.cursor='grabbing';startX=e.pageX-scroll.offsetLeft;left=scroll.scrollLeft;});
+    scroll.addEventListener('mouseleave',()=>{isDown=false;scroll.style.cursor='grab';});
+    scroll.addEventListener('mouseup',()=>{isDown=false;scroll.style.cursor='grab';});
+    scroll.addEventListener('mousemove',(e)=>{if(!isDown)return;e.preventDefault();const x=e.pageX-scroll.offsetLeft;scroll.scrollLeft=left-(x-startX)*1.5;});
+  </script>
+</body>
+</html>
